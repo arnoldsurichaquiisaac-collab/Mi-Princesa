@@ -501,7 +501,7 @@
   const statusEl = document.getElementById('status');
   let statusAudio = '🎵 buscando audio…';
   let statusLyrics = '';
-  function renderStatus() { statusEl.textContent = 'v8 · ' + statusAudio + (statusLyrics ? ' · ' + statusLyrics : ''); }
+  function renderStatus() { statusEl.textContent = 'v9 · ' + statusAudio + (statusLyrics ? ' · ' + statusLyrics : ''); }
   renderStatus();
 
   let manualName = '';
@@ -644,6 +644,10 @@
       lines[idx].el.style.setProperty('--p', pct.toFixed(1) + '%');
     }
   }
+  audio.addEventListener('timeupdate', updateLyrics);
+  audio.addEventListener('seeked', updateLyrics);
+  audio.addEventListener('play', updateLyrics);
+  updateLyrics();
 
   const pasteBox = document.getElementById('paste');
   const pasteText = document.getElementById('pasteText');
