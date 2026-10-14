@@ -523,7 +523,7 @@
     }
   });
 
-  audio.addEventListener('loadedmetadata', () => {
+  function updateAudioStatus() {
     let nombre = manualName;
     if (!nombre) {
       nombre = audio.currentSrc.split('/').pop();
@@ -532,7 +532,9 @@
     statusAudio = '🎵 ' + nombre + ' ✔';
     warn.hidden = true;
     renderStatus();
-  });
+  }
+  audio.addEventListener('loadedmetadata', updateAudioStatus);
+  if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) updateAudioStatus();
 
   function useAudioFile(f) {
     if (!f) return;
