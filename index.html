@@ -36,6 +36,13 @@
     pointer-events: none;
   }
   #title small { display: block; font-weight: 500; font-size: 0.5em; opacity: 0.8; letter-spacing: 3px; }
+  #title .dedication {
+    display: block;
+    margin-bottom: 4px;
+    font-size: clamp(14px, 2.4vw, 20px);
+    line-height: 1.25;
+    letter-spacing: 0.5px;
+  }
 
   /* ---------- Letra (karaoke) ---------- */
   #lyrics {
@@ -199,7 +206,7 @@
 
 <canvas id="bg"></canvas>
 
-<div id="title">🌻 Mi princesa 🌻<small>GONDWANA</small></div>
+<div id="title"><span class="dedication">Feliz 14, amor de mi vida, te amo mucho, Dianita</span>🌻 Mi princesa 🌻<small>GONDWANA</small></div>
 
 <div id="lyrics"><div id="lyricsInner"></div></div>
 
