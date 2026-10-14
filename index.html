@@ -107,6 +107,7 @@
     box-shadow: 0 6px 16px rgba(0,0,0,0.3);
   }
   .card button:hover, .btn:hover { filter: brightness(1.2); }
+  .card button:disabled { cursor: wait; opacity: 0.75; }
   #audioWarn { color: #a02020; font-size: 14px !important; margin: 14px 0 0 !important; font-weight: 600; }
 
   /* ---------- Botón de sonido ---------- */
@@ -221,8 +222,8 @@
 <div id="intro">
   <div class="card">
     <h1>🌻 Mi princesa 🌻</h1>
-    <p>La canción se carga desde <b>cancion.mp3</b>. Al publicar, sube ese archivo junto a <b>index.html</b> y <b>letra.js</b>. Pulsa para empezar la música.</p>
-    <button id="enter">Entrar</button>
+    <p>La canción y la letra sincronizada están listas para ti.</p>
+    <button id="enter" disabled>Dale clic, mi amor 💛</button>
     <p id="audioWarn" hidden></p>
     <p><label class="btn" for="audioFile" style="display:inline-block;font-size:15px;padding:9px 20px">🎵 Usar otro audio (opcional)</label></p>
   </div>
@@ -243,7 +244,7 @@
 <div id="paste" hidden>
   <div class="card">
     <h2>📝 Tu letra</h2>
-    <p>Si tienes un archivo <b>.lrc</b> (letra con tiempos), cárgalo y el karaoke queda listo al instante:</p>
+    <p>La letra con tiempos se carga automáticamente desde el archivo <b>.lrc</b> de esta carpeta. Si quieres reemplazarla, carga otro archivo:</p>
     <p><label class="btn" for="lrcFile" style="display:inline-block">📂 Cargar archivo .lrc</label></p>
     <input type="file" id="lrcFile" accept=".lrc,.txt,text/plain" hidden>
     <p>O pega la letra sin tiempos (una línea por renglón y una línea en blanco entre estrofas) y la sincronizas con ESPACIO mientras suena la canción. Todo se guarda en este navegador.</p>
@@ -256,11 +257,25 @@
   </div>
 </div>
 
-<audio id="audio" src="./cancion.mp3" loop preload="auto" autoplay></audio>
+<audio id="audio" src="./cancion.mp3" loop preload="metadata"></audio>
 
-<script src="letra.js"></script>
+<script src="./letra.js"></script>
 <script>
-(() => {
+(async () => {
+  let fileLyrics = '';
+  let lyricsLoadWarning = '';
+  try {
+    const lyricsUrl = new URL('./Gondwana - Mi princesa - Letra - (320 Kbps).lrc', document.baseURI);
+    const response = await fetch(lyricsUrl);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    fileLyrics = await response.text();
+    if (!fileLyrics.trim()) throw new Error('El archivo .lrc está vacío');
+    if (!/^\[\d+:\d+(?:\.\d+)?\]/m.test(fileLyrics)) throw new Error('El archivo no contiene tiempos LRC válidos');
+  } catch (error) {
+    lyricsLoadWarning = ' · .lrc no disponible; usando respaldo';
+    console.warn('No se pudo cargar automáticamente el archivo .lrc.', error);
+  }
+
   /* =====================================================
      GIRASOLES REALISTAS (dibujados con canvas)
   ===================================================== */
@@ -486,23 +501,25 @@
   const statusEl = document.getElementById('status');
   let statusAudio = '🎵 buscando audio…';
   let statusLyrics = '';
-  function renderStatus() { statusEl.textContent = 'v6 · ' + statusAudio + (statusLyrics ? ' · ' + statusLyrics : ''); }
+  function renderStatus() { statusEl.textContent = 'v8 · ' + statusAudio + (statusLyrics ? ' · ' + statusLyrics : ''); }
   renderStatus();
 
   let manualName = '';
   audio.addEventListener('error', () => {
     statusAudio = '🎵 sin audio';
     renderStatus();
-    const code = audio.error ? audio.error.code : '?';
+    const code = audio.error ? audio.error.code : 0;
     warn.hidden = false;
     if (manualName) {
-      warn.textContent = 'El navegador no pudo reproducir "' + manualName + '" (código ' + code + '). Puede estar dañado o en un formato no compatible.';
+      warn.textContent = 'No se pudo reproducir "' + manualName + '" (error ' + code + '). Comprueba que el archivo sea un audio MP3 válido.';
     } else if (location.protocol === 'file:') {
-      warn.textContent = 'El audio no se pudo cargar automáticamente. Abre index.html con Live Server o selecciónalo con el botón 🎵.';
+      warn.textContent = 'No se pudo cargar ./cancion.mp3 desde el archivo local. Abre el sitio con GitHub Pages o un servidor local; no necesitas elegir el audio cuando ambos archivos estén publicados juntos.';
+    } else if (code === 2) {
+      warn.textContent = 'No se pudo descargar ./cancion.mp3. Sube el MP3 junto a index.html y respeta exactamente las mayúsculas/minúsculas del nombre.';
+    } else if (code === 3 || code === 4) {
+      warn.textContent = './cancion.mp3 se encontró, pero el navegador no puede decodificarlo. Comprueba que sea un MP3 válido.';
     } else {
-      let aqui = location.href.replace(/[^/]*$/, '');
-      try { aqui = decodeURI(aqui); } catch (e) {}
-      warn.textContent = 'No se encontró ./cancion.mp3 en: ' + aqui + ' — Sube cancion.mp3 junto a index.html y respeta las minúsculas del nombre.';
+      warn.textContent = 'No se pudo cargar ./cancion.mp3 (error ' + code + '). Comprueba que esté publicado junto a index.html.';
     }
   });
 
@@ -531,14 +548,13 @@
     useAudioFile(e.target.files && e.target.files[0]);
   });
 
-  audio.play().then(hideIntro).catch(() => {});
-
   document.getElementById('enter').addEventListener('click', () => {
     audio.play().then(hideIntro).catch(() => {
       warn.hidden = false;
-      if (!audio.error) warn.textContent = 'No se pudo iniciar el audio. Selecciona cancion.mp3 con el botón 🎵.';
+      if (!audio.error) warn.textContent = 'No se pudo iniciar la canción. Vuelve a tocar el botón para intentarlo de nuevo.';
     });
   });
+  document.getElementById('enter').disabled = false;
 
   muteBtn.addEventListener('click', () => {
     audio.muted = !audio.muted;
@@ -553,7 +569,7 @@
 
   let userLyrics = '';
   try { userLyrics = localStorage.getItem('letra_usuario') || ''; } catch (e) {}
-  let src = userLyrics || (typeof LETRA_LRC === 'string' ? LETRA_LRC : '');
+  let src = userLyrics.trim() ? userLyrics : (fileLyrics || (typeof LETRA_LRC === 'string' ? LETRA_LRC : ''));
   if (!userLyrics && /Aquí va la primera línea/.test(src)) src = '';
   const raw = src.replace(/\r/g, '').trim();
   const re = /^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/;
@@ -592,6 +608,7 @@
     ? '🎤 sin letra (pulsa 📝)'
     : anyTimed ? '🎤 ' + lines.length + ' líneas con tiempos ✔'
                : '🎤 ' + lines.length + ' líneas sin tiempos (sincroniza con ESPACIO)';
+  statusLyrics += lyricsLoadWarning;
   renderStatus();
 
   function scrollToEl(el) {
